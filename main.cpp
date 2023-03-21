@@ -514,31 +514,35 @@ vsi_status PostProcess(vsi_nn_graph_t *graph, cv::Mat img, const std::string fil
 
     int outSize_w = img.cols;
     int outSize_h = img.rows;
+    const int pixnum = outSize_w * outSize_h;
 
     cv::Mat outimg;
-    outimg.create(cv::Size(outSize_w, outSize_h), CV_32FC1);
+    outimg.create(cv::Size(outSize_w, outSize_h), CV_8UC3);
     for (int i=0; i<outSize_h; ++i) {
             for (int j=0; j<outSize_w; ++j)
             {
-                outimg.at<float>(i,j) = output.data[i*outSize_w+j];
+//                std::cout<<"index :"<<i * outSize_w + j<<" value: "<<output.data[i * outSize_w + j]<<std::endl;
+                outimg.at<cv::Vec3b>(i,j)[0] = output.data[i * outSize_w + j] * 255.0;
+                outimg.at<cv::Vec3b>(i,j)[1] = output.data[pixnum + i * outSize_w + j] * 255.0;
+                outimg.at<cv::Vec3b>(i,j)[2] = output.data[pixnum * 2 +i * outSize_w + j] * 255.0;
             }
     }
 
+    cv::cvtColor(outimg, outimg, cv::COLOR_RGB2BGR);
     cv::Mat final;
     cv::resize(outimg, final, cv::Size(640, 400));
 
+    uint64_t tmsEnd = get_perf_count();
+    uint64_t msVal = (tmsEnd - tmsStart) / 1000000;
+    printf("PostProcess time: %ldms \n", msVal);
 
+    //save
     int index = file.find_last_of('/');
     std::string path = file.substr(index+1, -1);
     int index2 = path.find_last_of(".");
     std::string extendName = path.substr(0, index2);
-    final = final * 255.0;
+    final = final ;
     cv::imwrite("../result/result_" + extendName + ".png", final);
-
-    uint64_t tmsEnd = get_perf_count();
-    uint64_t msVal = (tmsEnd - tmsStart) / 1000000;
-
-    printf("PostProcess time: %ldms \n", msVal);
 
     return VSI_SUCCESS;
 }
